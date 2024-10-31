@@ -1,37 +1,37 @@
-'use client'
+"use client";
 
-import React, { useEffect, useRef, useState } from "react"
-import Webcam from "react-webcam"
-import { load as cocoSSDLoad } from "@tensorflow-models/coco-ssd"
-import * as tf from "@tensorflow/tfjs"
-import { renderPredictions } from "@/utils/render-predictions"
-import { motion } from "framer-motion"
-import { Camera, Loader, RotateCcw } from "lucide-react"
-import PropTypes from 'prop-types'
+import React, { useEffect, useRef, useState } from "react";
+import Webcam from "react-webcam";
+import { load as cocoSSDLoad } from "@tensorflow-models/coco-ssd";
+import * as tf from "@tensorflow/tfjs";
+import { renderPredictions } from "@/utils/render-predictions";
+import { motion } from "framer-motion";
+import { Camera, Loader, RotateCcw } from "lucide-react";
+import PropTypes from "prop-types";
 
-let detectInterval
+let detectInterval;
 
 const ObjectDetection = () => {
-  const [isLoading, setIsLoading] = useState(true)
-  const [isDetecting, setIsDetecting] = useState(false)
-  const [facingMode, setFacingMode] = useState("user")
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [facingMode, setFacingMode] = useState("user");
 
-  const webcamRef = useRef(null)
-  const canvasRef = useRef(null)
+  const webcamRef = useRef(null);
+  const canvasRef = useRef(null);
 
   async function runCoco() {
     try {
-      setIsLoading(true)
-      const net = await cocoSSDLoad()
-      setIsLoading(false)
-      setIsDetecting(true)
-      
+      setIsLoading(true);
+      const net = await cocoSSDLoad();
+      setIsLoading(false);
+      setIsDetecting(true);
+
       detectInterval = setInterval(() => {
-        runObjectDetection(net)
-      }, 10)
+        runObjectDetection(net);
+      }, 10);
     } catch (error) {
-      console.error('Error loading COCO-SSD model:', error)
-      setIsLoading(false)
+      console.error("Error loading COCO-SSD model:", error);
+      setIsLoading(false);
     }
   }
 
@@ -41,57 +41,48 @@ const ObjectDetection = () => {
       webcamRef.current?.video &&
       webcamRef.current.video.readyState === 4
     ) {
-      const video = webcamRef.current.video
-      canvasRef.current.width = video.videoWidth
-      canvasRef.current.height = video.videoHeight
+      const video = webcamRef.current.video;
+      canvasRef.current.width = video.videoWidth;
+      canvasRef.current.height = video.videoHeight;
 
       try {
-        const detectedObjects = await net.detect(
-          video,
-          undefined,
-          0.6
-        )
+        const detectedObjects = await net.detect(video, undefined, 0.6);
 
-        const context = canvasRef.current.getContext('2d')
+        const context = canvasRef.current.getContext("2d");
         if (context) {
-          renderPredictions(detectedObjects, context)
+          renderPredictions(detectedObjects, context);
         }
       } catch (error) {
-        console.error('Error during object detection:', error)
+        console.error("Error during object detection:", error);
       }
     }
   }
 
   const showMyVideo = () => {
-    if (
-      webcamRef.current?.video &&
-      webcamRef.current.video.readyState === 4
-    ) {
-      const video = webcamRef.current.video
-      video.width = video.videoWidth
-      video.height = video.videoHeight
+    if (webcamRef.current?.video && webcamRef.current.video.readyState === 4) {
+      const video = webcamRef.current.video;
+      video.width = video.videoWidth;
+      video.height = video.videoHeight;
     }
-  }
+  };
 
   const toggleCamera = () => {
-    setFacingMode((prevMode) => 
-      prevMode === "user" ? "environment" : "user"
-    )
-  }
+    setFacingMode((prevMode) => (prevMode === "user" ? "environment" : "user"));
+  };
 
   useEffect(() => {
-    runCoco()
-    showMyVideo()
+    runCoco();
+    showMyVideo();
 
     return () => {
       if (detectInterval) {
-        clearInterval(detectInterval)
+        clearInterval(detectInterval);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   return (
-    <motion.div 
+    <motion.div
       className="w-full max-w-3xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -100,18 +91,26 @@ const ObjectDetection = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center p-8 bg-gray-100 rounded-lg shadow-lg">
           <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-xl font-semibold text-gray-800">Loading AI Model...</p>
+          <p className="text-xl font-semibold text-gray-800">
+            Loading AI Model...
+          </p>
         </div>
       ) : (
         <div className="relative">
           <div className="absolute top-4 left-4 z-10 bg-white bg-opacity-75 rounded-full p-2">
-            <Camera className={`w-6 h-6 ${isDetecting ? 'text-green-600' : 'text-red-600'}`} />
+            <Camera
+              className={`w-6 h-6 ${
+                isDetecting ? "text-green-600" : "text-red-600"
+              }`}
+            />
           </div>
           <div className="absolute top-4 right-4 z-10">
-            <button 
+            <button
               onClick={toggleCamera}
               className="bg-white bg-opacity-75 rounded-full p-2 hover:bg-opacity-100 transition-all duration-300"
-              aria-label={`Switch to ${facingMode === 'user' ? 'back' : 'front'} camera`}
+              aria-label={`Switch to ${
+                facingMode === "user" ? "back" : "front"
+              } camera`}
             >
               <RotateCcw className="w-6 h-6 text-blue-600" />
             </button>
@@ -119,11 +118,11 @@ const ObjectDetection = () => {
           <div className="relative overflow-hidden rounded-lg shadow-lg aspect-video">
             <Webcam
               ref={webcamRef}
-              className="w-full h-full object-cover"
+              className="w-full h-auto"
               videoConstraints={{
                 facingMode: facingMode,
                 width: 1280,
-                height: 720
+                height: 720,
               }}
               muted
             />
@@ -133,16 +132,18 @@ const ObjectDetection = () => {
             />
           </div>
           <p className="mt-4 text-center text-gray-600">
-            {isDetecting ? "Object detection is active" : "Initializing detection..."}
+            {isDetecting
+              ? "Object detection is active"
+              : "Initializing detection..."}
           </p>
         </div>
       )}
     </motion.div>
-  )
-}
+  );
+};
 
 ObjectDetection.propTypes = {
   // Add any props and their types here if needed
-}
+};
 
-export default ObjectDetection
+export default ObjectDetection;

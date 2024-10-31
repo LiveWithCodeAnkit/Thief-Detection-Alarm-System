@@ -115,7 +115,7 @@ const ObjectDetection = () => {
               <RotateCcw className="w-6 h-6 text-blue-600" />
             </button>
           </div>
-          <div className="relative overflow-hidden rounded-lg shadow-lg aspect-video">
+          <div className="relative overflow-hidden rounded-lg shadow-lg">
             <Webcam
               ref={webcamRef}
               className="w-full h-auto"

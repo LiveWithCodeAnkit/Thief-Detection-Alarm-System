@@ -69,7 +69,7 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.6 }}
         >
           <a 
-            href="https://github.com/yourusername/thief-detection-alarm" 
+            href="https://github.com/LiveWithCodeAnkit" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-block bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 transition-colors duration-300"

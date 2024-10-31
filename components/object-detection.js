@@ -6,73 +6,93 @@ import { load as cocoSSDLoad } from "@tensorflow-models/coco-ssd"
 import * as tf from "@tensorflow/tfjs"
 import { renderPredictions } from "@/utils/render-predictions"
 import { motion } from "framer-motion"
-import { Camera, Loader } from "lucide-react"
+import { Camera, Loader, RotateCcw } from "lucide-react"
+import PropTypes from 'prop-types'
 
 let detectInterval
 
 const ObjectDetection = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isDetecting, setIsDetecting] = useState(false)
+  const [facingMode, setFacingMode] = useState("user")
 
   const webcamRef = useRef(null)
   const canvasRef = useRef(null)
 
   async function runCoco() {
-    setIsLoading(true)
-    const net = await cocoSSDLoad()
-    setIsLoading(false)
-
-    setIsDetecting(true)
-    detectInterval = setInterval(() => {
-      runObjectDetection(net)
-    }, 10)
+    try {
+      setIsLoading(true)
+      const net = await cocoSSDLoad()
+      setIsLoading(false)
+      setIsDetecting(true)
+      
+      detectInterval = setInterval(() => {
+        runObjectDetection(net)
+      }, 10)
+    } catch (error) {
+      console.error('Error loading COCO-SSD model:', error)
+      setIsLoading(false)
+    }
   }
 
   async function runObjectDetection(net) {
     if (
       canvasRef.current &&
-      webcamRef.current !== null &&
-      webcamRef.current.video?.readyState === 4
+      webcamRef.current?.video &&
+      webcamRef.current.video.readyState === 4
     ) {
-      canvasRef.current.width = webcamRef.current.video.videoWidth
-      canvasRef.current.height = webcamRef.current.video.videoHeight
+      const video = webcamRef.current.video
+      canvasRef.current.width = video.videoWidth
+      canvasRef.current.height = video.videoHeight
 
-      const detectedObjects = await net.detect(
-        webcamRef.current.video,
-        undefined,
-        0.6
-      )
+      try {
+        const detectedObjects = await net.detect(
+          video,
+          undefined,
+          0.6
+        )
 
-      const context = canvasRef.current.getContext("2d")
-      renderPredictions(detectedObjects, context)
+        const context = canvasRef.current.getContext('2d')
+        if (context) {
+          renderPredictions(detectedObjects, context)
+        }
+      } catch (error) {
+        console.error('Error during object detection:', error)
+      }
     }
   }
 
-  const showmyVideo = () => {
+  const showMyVideo = () => {
     if (
-      webcamRef.current !== null &&
-      webcamRef.current.video?.readyState === 4
+      webcamRef.current?.video &&
+      webcamRef.current.video.readyState === 4
     ) {
-      const myVideoWidth = webcamRef.current.video.videoWidth
-      const myVideoHeight = webcamRef.current.video.videoHeight
-
-      webcamRef.current.video.width = myVideoWidth
-      webcamRef.current.video.height = myVideoHeight
+      const video = webcamRef.current.video
+      video.width = video.videoWidth
+      video.height = video.videoHeight
     }
+  }
+
+  const toggleCamera = () => {
+    setFacingMode((prevMode) => 
+      prevMode === "user" ? "environment" : "user"
+    )
   }
 
   useEffect(() => {
     runCoco()
-    showmyVideo()
+    showMyVideo()
 
     return () => {
-      clearInterval(detectInterval)
+      if (detectInterval) {
+        clearInterval(detectInterval)
+      }
     }
   }, [])
 
   return (
     <motion.div 
-      className="w-full max-w-4xl mx-auto"
+      className="w-full max-w-3xl mx-auto"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
@@ -87,10 +107,24 @@ const ObjectDetection = () => {
           <div className="absolute top-4 left-4 z-10 bg-white bg-opacity-75 rounded-full p-2">
             <Camera className={`w-6 h-6 ${isDetecting ? 'text-green-600' : 'text-red-600'}`} />
           </div>
-          <div className="relative overflow-hidden rounded-lg shadow-lg">
+          <div className="absolute top-4 right-4 z-10">
+            <button 
+              onClick={toggleCamera}
+              className="bg-white bg-opacity-75 rounded-full p-2 hover:bg-opacity-100 transition-all duration-300"
+              aria-label={`Switch to ${facingMode === 'user' ? 'back' : 'front'} camera`}
+            >
+              <RotateCcw className="w-6 h-6 text-blue-600" />
+            </button>
+          </div>
+          <div className="relative overflow-hidden rounded-lg shadow-lg aspect-video">
             <Webcam
               ref={webcamRef}
-              className="w-full h-auto"
+              className="w-full h-full object-cover"
+              videoConstraints={{
+                facingMode: facingMode,
+                width: 1280,
+                height: 720
+              }}
               muted
             />
             <canvas
@@ -105,6 +139,10 @@ const ObjectDetection = () => {
       )}
     </motion.div>
   )
+}
+
+ObjectDetection.propTypes = {
+  // Add any props and their types here if needed
 }
 
 export default ObjectDetection

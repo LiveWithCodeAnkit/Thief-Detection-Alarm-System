@@ -7,7 +7,6 @@ import * as tf from "@tensorflow/tfjs";
 import { renderPredictions } from "@/utils/render-predictions";
 import { motion } from "framer-motion";
 import { Camera, Loader, RotateCcw } from "lucide-react";
-import PropTypes from "prop-types";
 
 let detectInterval;
 
@@ -26,9 +25,10 @@ const ObjectDetection = () => {
       setIsLoading(false);
       setIsDetecting(true);
 
+      // Adjusted interval for detection to reduce strain and stabilize video
       detectInterval = setInterval(() => {
         runObjectDetection(net);
-      }, 10);
+      }, 100);
     } catch (error) {
       console.error("Error loading COCO-SSD model:", error);
       setIsLoading(false);
@@ -46,7 +46,8 @@ const ObjectDetection = () => {
       canvasRef.current.height = video.videoHeight;
 
       try {
-        const detectedObjects = await net.detect(video, undefined, 0.6);
+        // Lowered detection threshold for improved object detection
+        const detectedObjects = await net.detect(video, undefined, 0.5);
 
         const context = canvasRef.current.getContext("2d");
         if (context) {
@@ -58,21 +59,15 @@ const ObjectDetection = () => {
     }
   }
 
-  const showMyVideo = () => {
-    if (webcamRef.current?.video && webcamRef.current.video.readyState === 4) {
-      const video = webcamRef.current.video;
-      video.width = video.videoWidth;
-      video.height = video.videoHeight;
-    }
-  };
-
-  const toggleCamera = () => {
+  const toggleAndSetCamera = () => {
     setFacingMode((prevMode) => (prevMode === "user" ? "environment" : "user"));
+    setTimeout(() => {
+      setFacingMode("environment"); // Helps refocus when switching to back camera
+    }, 100);
   };
 
   useEffect(() => {
     runCoco();
-    showMyVideo();
 
     return () => {
       if (detectInterval) {
@@ -87,51 +82,101 @@ const ObjectDetection = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center p-8 bg-gray-100 rounded-lg shadow-lg">
-          <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-xl font-semibold text-gray-800">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2rem",
+            backgroundColor: "#f3f4f6",
+            borderRadius: "0.5rem",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <Loader
+            className="animate-spin"
+            style={{ width: "3rem", height: "3rem", color: "#3b82f6", marginBottom: "1rem" }}
+          />
+          <p style={{ fontSize: "1.25rem", fontWeight: "600", color: "#1f2937" }}>
             Loading AI Model...
           </p>
         </div>
       ) : (
-        <div className="relative">
-          <div className="absolute top-4 left-4 z-10 bg-white bg-opacity-75 rounded-full p-2">
+        <div style={{ position: "relative" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "1rem",
+              left: "1rem",
+              zIndex: 10,
+              backgroundColor: "#ffffffcc",
+              borderRadius: "50%",
+              padding: "0.5rem",
+            }}
+          >
             <Camera
-              className={`w-6 h-6 ${
-                isDetecting ? "text-green-600" : "text-red-600"
-              }`}
+              style={{
+                width: "1.5rem",
+                height: "1.5rem",
+                color: isDetecting ? "#10b981" : "#ef4444",
+              }}
             />
           </div>
-          <div className="absolute top-4 right-4 z-10">
+          <div style={{ position: "absolute", top: "1rem", right: "1rem", zIndex: 10 }}>
             <button
-              onClick={toggleCamera}
-              className="bg-white bg-opacity-75 rounded-full p-2 hover:bg-opacity-100 transition-all duration-300"
-              aria-label={`Switch to ${
-                facingMode === "user" ? "back" : "front"
-              } camera`}
+              onClick={toggleAndSetCamera}
+              style={{
+                backgroundColor: "#ffffffcc",
+                borderRadius: "50%",
+                padding: "0.5rem",
+                transition: "background-color 0.3s",
+              }}
+              aria-label={`Switch to ${facingMode === "user" ? "back" : "front"} camera`}
             >
-              <RotateCcw className="w-6 h-6 text-blue-600" />
+              <RotateCcw style={{ width: "1.5rem", height: "1.5rem", color: "#3b82f6" }} />
             </button>
           </div>
-          <div className="relative overflow-hidden rounded-lg shadow-lg">
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: "0.5rem",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+            }}
+          >
             <Webcam
               ref={webcamRef}
-              className="w-full h-auto"
+              style={{
+                width: "100%",
+                height: "auto",
+                objectFit: "cover",
+              }}
               videoConstraints={{
                 facingMode: facingMode,
-                width: 1280,
-                height: 720,
               }}
               muted
             />
             <canvas
               ref={canvasRef}
-              className="absolute top-0 left-0 w-full h-full"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+              }}
             />
           </div>
-          <p className="mt-4 text-center text-gray-600">
+          <p style={{ marginTop: "1rem", textAlign: "center", color: "#4b5563" }}>
             {isDetecting
               ? "Object detection is active"
               : "Initializing detection..."}
@@ -140,10 +185,6 @@ const ObjectDetection = () => {
       )}
     </motion.div>
   );
-};
-
-ObjectDetection.propTypes = {
-  // Add any props and their types here if needed
 };
 
 export default ObjectDetection;
